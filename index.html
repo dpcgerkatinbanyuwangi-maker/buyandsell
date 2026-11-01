@@ -1,0 +1,467 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crypto IDX Assistant 1M</title>
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#0b1220;color:#fff;
+ font-family:Arial,sans-serif;padding:15px
+}
+.container{max-width:1050px;margin:auto}
+header{text-align:center;padding:20px}
+header h1{color:#22d3a5;margin-bottom:5px}
+.card{
+ background:#172338;border:1px solid #263750;
+ border-radius:13px;padding:17px;margin-bottom:14px
+}
+.grid{
+ display:grid;grid-template-columns:repeat(4,1fr);gap:12px
+}
+.stat{
+ background:#101b2d;padding:14px;border-radius:10px
+}
+.stat small{color:#a9bad0}
+.value{font-size:22px;font-weight:bold;margin-top:8px}
+input{
+ width:100%;padding:12px;margin:7px 0 12px;
+ background:#0b1220;border:1px solid #34465e;
+ border-radius:8px;color:white
+}
+button{
+ padding:12px;border:0;border-radius:8px;
+ font-weight:bold;cursor:pointer;margin:4px 2px
+}
+.blue{background:#2563eb;color:white}
+.green{background:#059669;color:white}
+.red{background:#dc2626;color:white}
+.gray{background:#475569;color:white}
+.signal{
+ padding:22px;text-align:center;border-radius:10px
+}
+.signal h1{font-size:34px;margin:5px}
+.buy{background:#064e3b;color:#6ee7b7}
+.sell{background:#7f1d1d;color:#fecaca}
+.wait{background:#374151;color:white}
+small{color:#aab8cc}
+table{width:100%;border-collapse:collapse;font-size:13px}
+td,th{padding:10px;border-bottom:1px solid #35445a;text-align:left}
+.greenText{color:#6ee7b7}
+.redText{color:#fca5a5}
+footer{text-align:center;color:#94a3b8;padding:20px}
+@media(max-width:700px){
+ .grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+<h1>CRYPTO IDX</h1>
+<h3>TRADING ASSISTANT 1M</h3>
+<small>EMA 9 • EMA 21 • RSI 14 • CANDLE ANALYSIS</small>
+</header>
+
+<div class="card">
+<h3>1. Input Candle 1 Menit</h3>
+<small>Masukkan data OHLC candle yang sudah selesai.</small>
+
+<label>Open</label>
+<input type="number" id="open" placeholder="Harga pembukaan">
+
+<label>High</label>
+<input type="number" id="high" placeholder="Harga tertinggi">
+
+<label>Low</label>
+<input type="number" id="low" placeholder="Harga terendah">
+
+<label>Close</label>
+<input type="number" id="close" placeholder="Harga penutupan">
+
+<button class="blue" onclick="addCandle()">TAMBAH CANDLE</button>
+<button class="gray" onclick="resetAll()">RESET</button>
+<p id="inputStatus"><small>Minimal 21 candle untuk analisis EMA 21.</small></p>
+</div>
+
+<div class="grid">
+<div class="stat">
+<small>Harga Close</small>
+<div class="value" id="last">-</div>
+</div>
+<div class="stat">
+<small>EMA 9</small>
+<div class="value" id="ema9">-</div>
+</div>
+<div class="stat">
+<small>EMA 21</small>
+<div class="value" id="ema21">-</div>
+</div>
+<div class="stat">
+<small>RSI 14</small>
+<div class="value" id="rsi">-</div>
+</div>
+</div>
+
+<div class="card">
+<h3>2. Analisis Sinyal 1M</h3>
+<div class="signal wait" id="signal">
+<h1>WAIT</h1>
+<p>Menunggu data candle</p>
+</div>
+<p id="analysis">Belum ada analisis.</p>
+<p id="candleType">Pola candle: -</p>
+<p id="score">Skor indikator: -</p>
+<small>Skor bukan probabilitas profit.</small>
+</div>
+
+<div class="card">
+<h3>3. Simulasi Trading</h3>
+
+<label>Modal simulasi (Rp)</label>
+<input id="capital" type="number" value="100000">
+
+<label>Target Profit (%)</label>
+<input id="tp" type="number" value="2">
+
+<label>Stop Loss (%)</label>
+<input id="sl" type="number" value="1">
+
+<button class="green" onclick="trade('BUY')">SIMULASI BUY</button>
+<button class="red" onclick="trade('SELL')">SIMULASI SELL</button>
+<button class="gray" onclick="closeTrade()">TUTUP POSISI</button>
+
+<p id="position">Belum ada posisi.</p>
+</div>
+
+<div class="grid">
+<div class="stat">
+<small>Total Transaksi</small>
+<div class="value" id="total">0</div>
+</div>
+<div class="stat">
+<small>Profit / Loss</small>
+<div class="value" id="profit">Rp0</div>
+</div>
+<div class="stat">
+<small>Candle Tersimpan</small>
+<div class="value" id="count">0</div>
+</div>
+<div class="stat">
+<small>Status</small>
+<div class="value" id="status">WAIT</div>
+</div>
+</div>
+
+<div class="card">
+<h3>4. Riwayat Candle</h3>
+<div style="overflow-x:auto">
+<table>
+<thead>
+<tr>
+<th>No.</th><th>Open</th><th>High</th>
+<th>Low</th><th>Close</th><th>Jenis</th>
+</tr>
+</thead>
+<tbody id="candles">
+<tr><td colspan="6">Belum ada candle.</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<div class="card">
+<h3>5. Riwayat Simulasi</h3>
+<div style="overflow-x:auto">
+<table>
+<thead>
+<tr>
+<th>Posisi</th><th>Entry</th><th>Exit</th><th>Profit/Loss</th>
+</tr>
+</thead>
+<tbody id="history">
+<tr><td colspan="4">Belum ada transaksi.</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<footer>
+Crypto IDX Trading Assistant 1M<br>
+Mode simulasi • Bukan jaminan keuntungan<br>
+Tidak mengirim order ke Binomo
+</footer>
+</div>
+
+<script>
+let data=[];
+let position=null;
+let total=0;
+let profit=0;
+let history=[];
+
+function fmt(n){
+ return Number(n).toLocaleString('id-ID',{
+ maximumFractionDigits:4
+ });
+}
+
+function ema(period){
+ if(data.length<period)return null;
+ let closes=data.map(x=>x.close);
+ let result=closes.slice(0,period)
+ .reduce((a,b)=>a+b,0)/period;
+ for(let i=period;i<closes.length;i++){
+  result=(closes[i]-result)*(2/(period+1))+result;
+ }
+ return result;
+}
+
+function rsi(){
+ if(data.length<15)return null;
+ let gain=0,loss=0;
+ for(let i=data.length-14;i<data.length;i++){
+  let change=data[i].close-data[i-1].close;
+  if(change>0)gain+=change;
+  else loss+=Math.abs(change);
+ }
+ if(loss===0)return 100;
+ let rs=gain/loss;
+ return 100-(100/(1+rs));
+}
+
+function candlePattern(c){
+ let body=Math.abs(c.close-c.open);
+ let range=c.high-c.low;
+ if(range===0)return 'DOJI';
+ let upper=c.high-Math.max(c.open,c.close);
+ let lower=Math.min(c.open,c.close)-c.low;
+
+ if(body/range<0.1)return 'DOJI';
+ if(c.close>c.open&&lower>body*2&&upper<body)
+  return 'HAMMER BULLISH';
+ if(c.close<c.open&&upper>body*2&&lower<body)
+  return 'SHOOTING STAR BEARISH';
+ if(c.close>c.open)return 'BULLISH';
+ return 'BEARISH';
+}
+
+function addCandle(){
+ let o=Number(document.getElementById('open').value);
+ let h=Number(document.getElementById('high').value);
+ let l=Number(document.getElementById('low').value);
+ let c=Number(document.getElementById('close').value);
+
+ if([o,h,l,c].some(x=>!Number.isFinite(x)||x<=0) ||
+ h<Math.max(o,c,l)||l>Math.min(o,c,h)){
+  alert('Data OHLC tidak valid. Periksa kembali.');
+  return;
+ }
+
+ data.push({open:o,high:h,low:l,close:c});
+ ['open','high','low','close'].forEach(
+  id=>document.getElementById(id).value=''
+ );
+ document.getElementById('inputStatus').innerText=
+ 'Candle berhasil ditambahkan.';
+ update();
+}
+
+function analyze(){
+ let e9=ema(9),e21=ema(21),rv=rsi();
+ let candle=data[data.length-1];
+ let pattern=candlePattern(candle);
+
+ if(e9===null||e21===null||rv===null){
+  return {
+   signal:'WAIT',score:0,
+   reason:'Data belum cukup. Masukkan minimal 21 candle.'
+  };
+ }
+
+ let buy=0,sell=0;
+
+ if(e9>e21)buy++;
+ if(e9<e21)sell++;
+
+ if(candle.close>e9)buy++;
+ if(candle.close<e9)sell++;
+
+ if(rv>50&&rv<70)buy++;
+ if(rv<50&&rv>30)sell++;
+
+ if(candle.close>candle.open)buy++;
+ if(candle.close<candle.open)sell++;
+
+ if(pattern==='HAMMER BULLISH')buy++;
+ if(pattern==='SHOOTING STAR BEARISH')sell++;
+
+ let signal='WAIT';
+ if(buy>=3&&buy>sell)signal='BUY';
+ else if(sell>=3&&sell>buy)signal='SELL';
+
+ return {
+  signal,score:Math.round(Math.max(buy,sell)/5*100),
+  reason:'BUY '+buy+'/5 | SELL '+sell+'/5. RSI '+rv.toFixed(2)+
+  '. EMA '+(e9>e21?'mengarah naik':'mengarah turun')+'.'
+ };
+}
+
+function update(){
+ let current=data[data.length-1].close;
+ let e9=ema(9),e21=ema(21),rv=rsi();
+ let a=analyze();
+
+ document.getElementById('last').innerText=fmt(current);
+ document.getElementById('ema9').innerText=e9===null?'-':fmt(e9);
+ document.getElementById('ema21').innerText=e21===null?'-':fmt(e21);
+ document.getElementById('rsi').innerText=rv===null?'-':rv.toFixed(2);
+ document.getElementById('count').innerText=data.length;
+ document.getElementById('status').innerText=a.signal;
+
+ let box=document.getElementById('signal');
+ box.className='signal '+(
+  a.signal==='BUY'?'buy':
+  a.signal==='SELL'?'sell':'wait'
+ );
+ box.innerHTML='<h1>'+a.signal+'</h1><p>'+a.reason+'</p>';
+
+ document.getElementById('analysis').innerText=a.reason;
+ document.getElementById('candleType').innerText=
+ 'Pola candle: '+candlePattern(data[data.length-1]);
+ document.getElementById('score').innerText=
+ 'Skor indikator: '+a.score+'/100';
+
+ renderCandles();
+ checkRisk(current);
+}
+
+function trade(type){
+ if(data.length<21){
+  alert('Minimal 21 candle untuk simulasi.');
+  return;
+ }
+ if(position){
+  alert('Tutup posisi sebelumnya.');
+  return;
+ }
+ let capital=Number(document.getElementById('capital').value);
+ if(!Number.isFinite(capital)||capital<=0){
+  alert('Modal tidak valid.');
+  return;
+ }
+
+ position={
+  type,
+  entry:data[data.length-1].close,
+  capital
+ };
+ showPosition();
+}
+
+function getPL(price){
+ let change=position.type==='BUY'
+ ?(price-position.entry)/position.entry
+ :(position.entry-price)/position.entry;
+ return position.capital*change;
+}
+
+function checkRisk(price){
+ if(!position)return;
+ let result=getPL(price);
+ let tp=Number(document.getElementById('tp').value)/100;
+ let sl=Number(document.getElementById('sl').value)/100;
+
+ if(tp>0&&result>=position.capital*tp)closeTrade();
+ else if(sl>0&&result<=-position.capital*sl)closeTrade();
+}
+
+function closeTrade(){
+ if(!position||!data.length)return;
+ let exit=data[data.length-1].close;
+ let result=getPL(exit);
+ total++;
+ profit+=result;
+
+ history.unshift({
+  type:position.type,entry:position.entry,
+  exit,result
+ });
+ position=null;
+ showPosition();
+ renderHistory();
+}
+
+function showPosition(){
+ document.getElementById('position').innerText=
+ position?
+ 'Posisi '+position.type+
+ ' | Entry '+fmt(position.entry)+
+ ' | Modal Rp'+fmt(position.capital):
+ 'Belum ada posisi.';
+}
+
+function renderCandles(){
+ document.getElementById('candles').innerHTML=
+ data.slice(-30).reverse().map((c,i)=>`
+ <tr>
+ <td>${data.length-i}</td>
+ <td>${fmt(c.open)}</td>
+ <td>${fmt(c.high)}</td>
+ <td>${fmt(c.low)}</td>
+ <td>${fmt(c.close)}</td>
+ <td class="${c.close>=c.open?'greenText':'redText'}">
+ ${c.close>=c.open?'BULLISH':'BEARISH'}
+ </td>
+ </tr>`).join('');
+}
+
+function renderHistory(){
+ document.getElementById('total').innerText=total;
+ document.getElementById('profit').innerText='Rp'+fmt(profit);
+ document.getElementById('profit').className=
+ 'value '+(profit>=0?'greenText':'redText');
+
+ document.getElementById('history').innerHTML=
+ history.map(x=>`
+ <tr>
+ <td>${x.type}</td>
+ <td>${fmt(x.entry)}</td>
+ <td>${fmt(x.exit)}</td>
+ <td class="${x.result>=0?'greenText':'redText'}">
+ Rp${fmt(x.result)}
+ </td>
+ </tr>`).join('')||
+ '<tr><td colspan="4">Belum ada transaksi.</td></tr>';
+}
+
+function resetAll(){
+ if(!confirm('Hapus semua data?'))return;
+ data=[];
+ position=null;
+ total=0;
+ profit=0;
+ history=[];
+ document.getElementById('last').innerText='-';
+ document.getElementById('ema9').innerText='-';
+ document.getElementById('ema21').innerText='-';
+ document.getElementById('rsi').innerText='-';
+ document.getElementById('count').innerText='0';
+ document.getElementById('status').innerText='WAIT';
+ document.getElementById('signal').className='signal wait';
+ document.getElementById('signal').innerHTML='<h1>WAIT</h1>';
+ document.getElementById('analysis').innerText='Belum ada analisis.';
+ document.getElementById('candleType').innerText='Pola candle: -';
+ document.getElementById('score').innerText='Skor indikator: -';
+ document.getElementById('inputStatus').innerText='Data direset.';
+ document.getElementById('candles').innerHTML=
+ '<tr><td colspan="6">Belum ada candle.</td></tr>';
+ showPosition();
+ renderHistory();
+}
+</script>
+</body>
+</html>
